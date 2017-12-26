@@ -78,6 +78,7 @@ public:
   void DFSearch(CirGate *, unsigned &) const;
   void DFSearch_NoPrint(CirGate *, unsigned &, stringstream &ss) const;
   void DFSlistGen(CirGate *);
+  void DFSopt(CirGate *);
   //void DFSearchByLevel_fanin(CirGate*, int, int) const;
   //void sortsingle(vector<CirGate*>);
   //void sortsingleint(vector<unsigned>);

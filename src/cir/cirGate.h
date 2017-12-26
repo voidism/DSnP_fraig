@@ -18,7 +18,7 @@
 using namespace std;
 
 // TODO: Feel free to define your own classes, variables, or functions.
-
+typedef pair<CirGate*,bool> Cell;
 class CirGate;
 
 //------------------------------------------------------------------------
@@ -58,6 +58,7 @@ protected:
   vector<CirGate *> _fout;
   vector<unsigned> _idin; //fanin literal id list
   vector<CirGate *> _fin;
+  Cell _in[2]; 
   vector<unsigned> _idout;
   vector<pair<CirGate*,bool> > _out;
 
@@ -65,6 +66,12 @@ protected:
   string type;
   string symb = "";
 };
+
+/* struct Cell{
+  CirGate* first;
+  bool second;
+}; */
+
 
 class PI : public CirGate
 {

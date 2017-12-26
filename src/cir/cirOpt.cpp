@@ -34,7 +34,6 @@ void
 CirMgr::sweep()
 {
 
-  (CirGate::_globalRef)++;
   //for (int idx = i + 1; idx < i + o + 1; idx++)
   /* for (std::map<unsigned int, CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
         CirGate * x = it->second;
@@ -78,6 +77,26 @@ CirMgr::DFSlistGen(CirGate *it)
 void
 CirMgr::optimize()
 {
+  (CirGate::_globalRef)++;
+  for(auto &x:_POlist){
+    DFSopt(x);
+  }
+}
+
+void
+CirMgr::DFSopt(CirGate *it)
+{
+  if(it->_ref == CirGate::_globalRef) return;
+  //if(it->type == "UNDEF") {it->_ref = CirGate::_globalRef; return;}
+  if(!(it->_fin.empty())){
+   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
+   {
+    if(it->_fin.at(jdx)->_ref == CirGate::_globalRef) continue;
+    DFSopt(it->_fin.at(jdx));
+   }
+   if (_fin[0]==_idMap[0]) cout << "CONST!" << endl;
+  }
+  it->_ref=CirGate::_globalRef;
 
 }
 
