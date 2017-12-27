@@ -281,13 +281,14 @@ CirMgr::readCircuit(const string& fileName)
     CirGate * x = it->second;
     if(x->_idin.empty()) {}
     else{
+      //int index = 0;
       for (unsigned j = 0; j < x->_idin.size();j++){
         std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(x->_idin.at(j)/2);
         CirGate *cpr = tmp->second;
         if (tmp == _idMap.end())
         {
           if(x->_idin.at(j)==0||x->_idin.at(j)==1){
-            cpr = _idMap.at(0);
+            cpr = _idMap[0];
           }
           else{
           //_Glist.push_back(new Undef((_Glist.at(i)->_idin.at(j) / 2)));
@@ -295,8 +296,9 @@ CirMgr::readCircuit(const string& fileName)
           }
         }
         if (x->type == "UNDEF") x->type = "AIG";
-        x->_fin.push_back(cpr);
-
+        //x->_fin.push_back(cpr);
+        x->_in.push_back(make_pair(cpr,(bool)(x->_idin.at(j) % 2)));
+        //index++;
         cpr->_out.push_back(make_pair(x,(bool)(x->_idin.at(j) % 2)));
 
       }
@@ -426,16 +428,16 @@ CirMgr::printNetlist() const
 void CirMgr::DFSearch(CirGate *it,unsigned &prindex) const{
   if(it->_ref==CirGate::_globalRef) return;
   if(it->type == "UNDEF") {it->_ref=CirGate::_globalRef;return;}
-  if(!(it->_fin.empty())){
-   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
+  if(!(it->_in.empty())){
+   for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
-    if(it->_fin.at(jdx)->_ref==CirGate::_globalRef) continue;
-    DFSearch(it->_fin.at(jdx),prindex);
+    if(it->_in.at(jdx).first->_ref==CirGate::_globalRef) continue;
+    DFSearch(it->_in.at(jdx).first,prindex);
    }
   }
   cout << "[" << prindex << "] " << setw(4) << left << it->type << it->gateID;
-  for (unsigned u = 0; u < it->_fin.size();u++){
-        cout << " " << ((it->_fin.at(u)->type=="UNDEF")? "*":"") << ((it->_idin.at(u) % 2)? "!":"")<< it->_fin.at(u)->gateID;
+  for (unsigned u = 0; u < it->_in.size();u++){
+        cout << " " << ((it->_in.at(u).first->type=="UNDEF")? "*":"") << ((it->_in.at(u).second)? "!":"")<< it->_in.at(u).first->gateID;
       }
   string sb = ((it->symb!="")? (" (" + it->symb + ")") : "");
   cout << sb << endl;//(symbol name)
@@ -475,8 +477,8 @@ CirMgr::printFloatGates() const
       nu.push_back(x->gateID);
     }
     if(x->type==("AIG")||x->type==("PO")){
-      for (unsigned u = 0; u < x->_fin.size();u++){
-        if(x->_fin.at(u)->type=="UNDEF"){
+      for (unsigned u = 0; u < x->_in.size();u++){
+        if(x->_in.at(u).first->type=="UNDEF"){
           wf.push_back(x->gateID);
           break;
         }
@@ -509,16 +511,16 @@ void
 CirMgr::DFSearch_NoPrint(CirGate *it,unsigned &prindex, stringstream& ss) const{
   if(it->_ref==CirGate::_globalRef) return;
   if(it->type == "UNDEF" || it->type == "PI") {it->_ref=CirGate::_globalRef;return;}
-  if(!(it->_fin.empty())){
-   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
+  if(!(it->_in.empty())){
+   for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
-    if(it->_fin.at(jdx)->_ref==CirGate::_globalRef) continue;
-    DFSearch_NoPrint(it->_fin.at(jdx),prindex,ss);
+    if(it->_in.at(jdx).first->_ref==CirGate::_globalRef) continue;
+    DFSearch_NoPrint(it->_in.at(jdx).first,prindex,ss);
    }
   }
   if(it->type=="AIG"){
   ss << it->gateID*2;
-  for (unsigned u = 0; u < it->_fin.size();u++){
+  for (unsigned u = 0; u < it->_in.size();u++){
         ss << " " << (it->_idin.at(u));
       }
   (prindex)++;

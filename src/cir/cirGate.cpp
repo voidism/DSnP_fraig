@@ -39,36 +39,6 @@ CirGate::reportGate() const
    cout << "==================================================" << endl;
 }
 
-// void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_level,bool invo) const{
-//    if(total_level != -1) if((total_level - dig_level) > total_level) return;
-//    const GateList* list = &it->_fin;
-//    vector<bool> _outInv;
-//    for(vector<unsigned>::const_iterator its = it->_idin.begin();its!=it->_idin.end();its++){
-//      _outInv.push_back((*its)%2);
-//    }
-  
-//     vector<bool>* inv = &_outInv;
-   
-//    if((*list).size()) it->_ref=CirGate::_globalRef;
-//    if(total_level == dig_level) {
-//       cout << type << " " << gateID << endl;
-//       it->_ref=CirGate::_globalRef;
-//       dig_level--;
-//    }
-//    for(int n = 0; n < (*list).size(); ++n) {
-//       for(int m = 0; m < (total_level - dig_level); ++m) cout << "  ";
-//       if((*inv)[n]) cout << "!";
-//       cout << (*list)[n]->type << " " << (*list)[n]->gateID;
-//       if((*list)[n]->_ref==CirGate::_globalRef) { cout << " (*)" << endl; }
-//       else {
-//          cout << endl;
-//          DFSearchByLevel_fanin((*list)[n],total_level, dig_level-1,0);
-//       }
-//    }
-// }
-
-
-
 void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_level,bool inv) const{
   if(dig_level<0)return;
   bool printed = (it->_ref==CirGate::_globalRef);
@@ -79,14 +49,14 @@ void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_le
   //if(it->type=="PI") return;
   if(printed) return;
   //if(dig_level==0) return;
-  if(!it->_fin.empty()&&dig_level!=0) it->_ref=CirGate::_globalRef;
+  if(!it->_in.empty()&&dig_level!=0) it->_ref=CirGate::_globalRef;
   else return;
   // print myself brfore children are printed!
   //vector<bool> answer;
-   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
+   for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
      //if(it->_fin.at(jdx)->_ref!=_globalRef)
-     DFSearchByLevel_fanin(it->_fin.at(jdx),dig_level-1,total_level,(it->_idin.at(jdx) % 2));
+     DFSearchByLevel_fanin(it->_in.at(jdx).first,dig_level-1,total_level,(it->_in.at(jdx).second));
      //answer.push_back(tmp);
     }
     // bool ret = answer[0];
@@ -119,35 +89,6 @@ void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_l
     DFSearchByLevel_fanout(jj->first,dig_level-1,total_level,jj->second);
   }
 }
-  
-
-// void CirGate::DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_level,bool invo) const{
-//    if(total_level != -1) if((total_level - dig_level) > total_level) return;
-//    const GateList* list = &it->_0fout;
-//    vector<bool> _outInv;
-//    for(vector<unsigned>::const_iterator its = it->_idout.begin();its!=it->_idout.end();its++){
-//      _outInv.push_back((*its)%2);
-//    }
-  
-//     vector<bool>* inv = &_outInv;
-   
-//    if((*list).size()) it->_ref=CirGate::_globalRef;
-//    if(total_level == dig_level) {
-//       cout << type << " " << gateID << endl;
-//       it->_ref=CirGate::_globalRef;
-//       dig_level--;
-//    }
-//    for(int n = 0; n < (*list).size(); ++n) {
-//       for(int m = 0; m < (total_level - dig_level); ++m) cout << "  ";
-//       if((*inv)[n]) cout << "!";
-//       cout << (*list)[n]->type << " " << (*list)[n]->gateID;
-//       if((*list)[n]->_ref==CirGate::_globalRef) { cout << " (*)" << endl; }
-//       else {
-//          cout << endl;
-//          DFSearchByLevel_fanout((*list)[n],total_level, dig_level-1,it->_idout[n]%2);
-//       }
-//    }
-// }
 
 void
 CirGate::reportFanin(int level) const

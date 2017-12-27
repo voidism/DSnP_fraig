@@ -19,6 +19,13 @@ using namespace std;
 
 // TODO: Feel free to define your own classes, variables, or functions.
 typedef pair<CirGate*,bool> Cell;
+/* enum Type{
+  PI,
+  PO,
+  CONST,
+  UNDEF,
+  AIG
+}; */
 class CirGate;
 
 //------------------------------------------------------------------------
@@ -55,12 +62,12 @@ protected:
   //int varID;
   //int litID;
   unsigned gateID;
-  vector<CirGate *> _fout;
+  //vector<CirGate *> _fout;
   vector<unsigned> _idin; //fanin literal id list
-  vector<CirGate *> _fin;
-  Cell _in[2]; 
-  vector<unsigned> _idout;
-  vector<pair<CirGate*,bool> > _out;
+  //vector<CirGate *> _fin;
+  vector<Cell> _in; 
+  //vector<unsigned> _idout;
+  vector<Cell> _out;
 
   unsigned linenum;
   string type;

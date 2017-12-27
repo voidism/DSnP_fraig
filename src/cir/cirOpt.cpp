@@ -60,11 +60,11 @@ CirMgr::DFSlistGen(CirGate *it)
 {
   if(it->_ref == CirGate::_globalRef) return;
   if(it->type == "UNDEF") {it->_ref = CirGate::_globalRef; return;}
-  if(!(it->_fin.empty())){
-   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
+  if(!(it->_in.empty())){
+   for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
-    if(it->_fin.at(jdx)->_ref == CirGate::_globalRef) continue;
-    DFSlistGen(it->_fin.at(jdx));
+    if(it->_in.at(jdx).first->_ref == CirGate::_globalRef) continue;
+    DFSlistGen(it->_in.at(jdx).first);
    }
   }
   _DFSlist.push_back(it);
@@ -78,7 +78,7 @@ void
 CirMgr::optimize()
 {
   (CirGate::_globalRef)++;
-  for(auto &x:_POlist){
+  for(auto &x:_DFSlist){
     DFSopt(x);
   }
 }
@@ -88,15 +88,64 @@ CirMgr::DFSopt(CirGate *it)
 {
   if(it->_ref == CirGate::_globalRef) return;
   //if(it->type == "UNDEF") {it->_ref = CirGate::_globalRef; return;}
-  if(!(it->_fin.empty())){
-   for (int jdx = 0; jdx < (int)it->_fin.size(); jdx++)
-   {
-    if(it->_fin.at(jdx)->_ref == CirGate::_globalRef) continue;
-    DFSopt(it->_fin.at(jdx));
-   }
-   if (_fin[0]==_idMap[0]) cout << "CONST!" << endl;
-  }
-  it->_ref=CirGate::_globalRef;
+  if((it->_in.empty())){ return; }
+  if(it->_in.size()>=2){
+   if (it->_in.at(0).first==_idMap[0]) {
+     //cout << it->type << it->gateID <<" -- _in1:CONST!" << ((it->_in.at(0).second)? "(*)":"") << endl;
+     for(auto &xy:it->_out){
+       for(auto & jj:xy.first->_in){
+         if(jj.first == it){
+           jj.first = ((it->_in.at(0).second)? it->_in.at(1).first:_idMap[0]);
+         }
+        }
+      }
+    if(it->_in.at(0).second){
+
+       cout << "Simplifying: " << it->_in.at(1).first->gateID << " merging " << it->gateID << "..." << endl;
+
+
+       for(vector<Cell>::iterator jj=it->_in.at(1).first->_out.begin(); jj!=it->_in.at(1).first->_out.end(); jj++){
+        //cout << "first step\n"; 
+        if(jj->first == it){
+           //cout << "erase!\n";
+           it->_in.at(1).first->_out.erase(jj);
+           break;
+          }
+        }
+       it->_in.at(1).first->_out.insert(it->_in.at(1).first->_out.end(), it->_out.begin(), it->_out.end());
+      }
+    else if(!(it->_in.at(0).second)){
+       cout << "Simplifying: " << 0 << " merging " << it->gateID << "..." << endl;
+       //cout << _idMap[0]->_out[0].first->gateID << endl;
+       //for(auto &x:_idMap[0]->_out) cout << x.first->gateID << endl;
+       for(vector<Cell>::iterator jj=_idMap[0]->_out.begin(); jj!=_idMap[0]->_out.end();){
+
+          //cout << jj->first->gateID << endl;
+        /* }
+        cout << "good\n"; 
+       for(vector<Cell>::iterator jj=_idMap[0]->_out.begin(); jj!=_idMap[0]->_out.end(); ++jj){
+         cout << "ggg"; */
+        if(jj->first == it){
+           //cout << "erase" << endl;
+           _idMap[0]->_out.erase(jj);
+           //cout << "fuckyou" << endl;
+           break;
+          }
+          else {
+            //cout << "pass" << endl;
+            jj++;
+        }
+      }
+      //cout << "insert" << endl;
+       _idMap[0]->_out.insert(_idMap[0]->_out.end(), it->_out.begin(), it->_out.end());
+      //cout << "afterinsert" << endl;
+      }
+     
+         
+  }//_in.at(0) is CONST ... END
+  if (it->_in.at(1).first==_idMap.at(0)) cout << it->type << it->gateID <<" -- _in2:CONST!" << (it->_in.at(1).second? "(*)":"") << endl;
+  
+  }//if have _in>1
 
 }
 
