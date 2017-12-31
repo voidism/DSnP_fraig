@@ -86,67 +86,78 @@ CirMgr::optimize()
 void
 CirMgr::DFSopt(CirGate *it)
 {
+  
   if(it->_ref == CirGate::_globalRef) return;
-  //if(it->type == "UNDEF") {it->_ref = CirGate::_globalRef; return;}
   if((it->_in.empty())){ return; }
-  if(it->_in.size()>=2){
-   if (it->_in.at(0).first==_idMap[0]) {
-     //cout << it->type << it->gateID <<" -- _in1:CONST!" << ((it->_in.at(0).second)? "(*)":"") << endl;
+  if(it->_in.size()<2){ return; }
+    //CirGate* congate = 0;
+    CirGate* other = 0;
+    bool inv = 0;
+  if (it->_in.at(0).first==_idMap[0]){
+    //congate = it->_in.at(0).first;
+    other = it->_in.at(1).first;
+    inv = it->_in.at(0).second;
+  }
+  else if (it->_in.at(1).first==_idMap[0]){
+    //congate = it->_in.at(1).first;
+    other = it->_in.at(0).first;
+    inv = it->_in.at(1).second;
+  }
+  //===================IF THE IN(0) IS CONST=========================
+   if (other != 0) {
+     //-------------IF IN(0) IS 1: merged with IN(1) else: merged with CONST 0
+     CirGate * alter = ((inv)? other:_idMap[0]);
+     //-------Modify his fanout gates' fanin to the alterative gate
      for(auto &xy:it->_out){
        for(auto & jj:xy.first->_in){
          if(jj.first == it){
-           jj.first = ((it->_in.at(0).second)? it->_in.at(1).first:_idMap[0]);
+           jj.first = alter;
          }
         }
       }
-    if(it->_in.at(0).second){
-
-       cout << "Simplifying: " << it->_in.at(1).first->gateID << " merging " << it->gateID << "..." << endl;
-
-
-       for(vector<Cell>::iterator jj=it->_in.at(1).first->_out.begin(); jj!=it->_in.at(1).first->_out.end(); jj++){
-        //cout << "first step\n"; 
+       cout << "Simplifying: " << alter->gateID << " merging " << ((inv)? "!":"") << it->gateID << "..." << endl;
+       //-------Modify his fanin gates' fanout (erase itself first)
+       for(vector<Cell>::iterator ii=it->_in.begin(); ii!=it->_in.end();ii++){
+       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end(); jj++){
         if(jj->first == it){
-           //cout << "erase!\n";
-           it->_in.at(1).first->_out.erase(jj);
+           ii->first->_out.erase(jj);
            break;
           }
         }
-       it->_in.at(1).first->_out.insert(it->_in.at(1).first->_out.end(), it->_out.begin(), it->_out.end());
       }
-    else if(!(it->_in.at(0).second)){
-       cout << "Simplifying: " << 0 << " merging " << it->gateID << "..." << endl;
-       //cout << _idMap[0]->_out[0].first->gateID << endl;
-       //for(auto &x:_idMap[0]->_out) cout << x.first->gateID << endl;
-       for(vector<Cell>::iterator jj=_idMap[0]->_out.begin(); jj!=_idMap[0]->_out.end();){
+      //------------Add his fanout to the alter's fanout
+       alter->_out.insert(alter->_out.end(), it->_out.begin(), it->_out.end());
+       return;
+      }
+      if(it->_in.at(0).first == it->_in.at(1).first){
+        CirGate* alter = 0;
+        bool inv = 0;
+        if(it->_in.at(0).second == it->_in.at(1).second){ alter = it->_in.at(0).first; inv = it->_in.at(0).second;}
+        else alter = _idMap[0];
 
-          //cout << jj->first->gateID << endl;
-        /* }
-        cout << "good\n"; 
-       for(vector<Cell>::iterator jj=_idMap[0]->_out.begin(); jj!=_idMap[0]->_out.end(); ++jj){
-         cout << "ggg"; */
-        if(jj->first == it){
-           //cout << "erase" << endl;
-           _idMap[0]->_out.erase(jj);
-           //cout << "fuckyou" << endl;
-           break;
-          }
-          else {
-            //cout << "pass" << endl;
-            jj++;
+        //-------Modify his fanout gates' fanin to the alterative gate
+     for(auto &xy:it->_out){
+       for(auto & jj:xy.first->_in){
+         if(jj.first == it){
+           jj.first = alter;
+         }
         }
       }
-      //cout << "insert" << endl;
-       _idMap[0]->_out.insert(_idMap[0]->_out.end(), it->_out.begin(), it->_out.end());
-      //cout << "afterinsert" << endl;
+       cout << "Simplifying: " << alter->gateID << " merging " << ((inv)? "!":"") << it->gateID << "..." << endl;
+       //-------Modify his fanin gates' fanout (erase itself first)
+       for(vector<Cell>::iterator ii=it->_in.begin(); ii!=it->_in.end();ii++){
+       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end(); jj++){
+        if(jj->first == it){
+           ii->first->_out.erase(jj);
+           break;
+          }
+        }
       }
-     
-         
-  }//_in.at(0) is CONST ... END
-  if (it->_in.at(1).first==_idMap.at(0)) cout << it->type << it->gateID <<" -- _in2:CONST!" << (it->_in.at(1).second? "(*)":"") << endl;
-  
-  }//if have _in>1
-
+      //------------Add his fanout to the alter's fanout
+       alter->_out.insert(alter->_out.end(), it->_out.begin(), it->_out.end());
+       return;
+      }
+      
 }
 
 /***************************************************/
