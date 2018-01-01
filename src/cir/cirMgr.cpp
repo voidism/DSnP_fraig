@@ -202,6 +202,9 @@ CirMgr::readCircuit(const string& fileName)
   }
   file.close();
   //(1)_Glist.push_back(new Const(0, 0));
+  _idMap.resize(1+i+o+a);
+  for (vector<CirGate *>::iterator x = _idMap.begin(); x != _idMap.end();x++)
+    {*x = 0;}
   _idMap[0] = new Const(0, 0);//_Glist.back();
   //read PI
   if(content.empty()){
@@ -277,40 +280,47 @@ CirMgr::readCircuit(const string& fileName)
   }
 
   //for (unsigned i = 0; i < _Glist.size();i++){
-  for (std::map<unsigned int, CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-    CirGate * x = it->second;
-    if(x->_idin.empty()) {}
-    else{
-      //int index = 0;
-      for (unsigned j = 0; j < x->_idin.size();j++){
-        std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(x->_idin.at(j)/2);
-        CirGate *cpr = tmp->second;
-        if (tmp == _idMap.end())
-        {
-          if(x->_idin.at(j)==0||x->_idin.at(j)==1){
-            cpr = _idMap[0];
-          }
-          else{
-          //_Glist.push_back(new Undef((_Glist.at(i)->_idin.at(j) / 2)));
-          cpr = _idMap[(x->_idin.at(j) / 2)] = new Undef((x->_idin.at(j) / 2));//_Glist.back();
-          }
-        }
-        if (x->type == "UNDEF") x->type = "AIG";
-        //x->_fin.push_back(cpr);
-        x->_in.push_back(make_pair(cpr,(bool)(x->_idin.at(j) % 2)));
-        //index++;
-        cpr->_out.push_back(make_pair(x,(bool)(x->_idin.at(j) % 2)));
+  //for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
 
+    for (auto &x : _idMap)
+    {
+      if (x->_idin.empty()){}
+      else
+      {
+        for (unsigned j = 0; j < x->_idin.size(); j++)
+        {
+          //std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(x->_idin.at(j)/2);
+          CirGate *cpr = _idMap[x->_idin.at(j) / 2]; //tmp->second;
+          if (cpr == 0)                              //tmp == _idMap.end())
+          {
+            if (x->_idin.at(j) == 0 || x->_idin.at(j) == 1)
+            {
+              cpr = _idMap[0];
+            }
+            else
+            {
+              //_Glist.push_back(new Undef((_Glist.at(i)->_idin.at(j) / 2)));
+              cpr = _idMap[(x->_idin.at(j) / 2)] = new Undef((x->_idin.at(j) / 2)); //_Glist.back();
+            }
+          }
+          if (x->type == "UNDEF")
+            x->type = "AIG";
+          //x->_fin.push_back(cpr);
+          x->_in.push_back(make_pair(cpr, (bool)(x->_idin.at(j) % 2)));
+          //index++;
+          cpr->_out.push_back(make_pair(x, (bool)(x->_idin.at(j) % 2)));
+        }
       }
-    }
   }
-  for (std::map<unsigned int, CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-        CirGate * x = it->second;
+  for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
+        CirGate * &x = *it;//->second;
         if(x==0) continue;
         sort(x->_out.begin(), x->_out.end(), less_than);;
   }
 
-
+  /* for(auto &x:_idMap){
+    cout << x->type << ": " << x->gateID << " key: " << (*x)() << endl;
+  } */
 
   while(lineNo < content.size())
   { 
@@ -338,9 +348,6 @@ CirMgr::readCircuit(const string& fileName)
       return parseError(MISSING_IDENTIFIER);
     }
     ReadIntoString(ss_line, symbolname);
-    //std::map<unsigned int, CirGate*>::iterator tmp = _idMap.find(id);
-    //if (tmp == _idMap.end()) { cerr << "Error22 gate not found!" << endl; return false;}
-    // = (io == 'i' ? id + 1 : id + i );
     CirGate *cpr = 0;
     if (io=='i') {
       cpr = _PIlist[id];
@@ -371,8 +378,8 @@ CirMgr::readCircuit(const string& fileName)
     DFSlistGen(x);
   }
   //for(auto& x:_Glist){//clean unused gate
-  for (std::map<unsigned int, CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-        CirGate * x = it->second;
+  for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
+        CirGate * &x = *it;//->second;
         if(x==0) continue;
         if(x->_ref != CirGate::_globalRef && x->type!="PI" && x->type!="PO" && x->type!="CONST"){
           x->unused = 1;
@@ -432,6 +439,7 @@ void CirMgr::DFSearch(CirGate *it,unsigned &prindex) const{
    for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
     if(it->_in.at(jdx).first->_ref==CirGate::_globalRef) continue;
+    if(it == it->_in.at(jdx).first) continue;
     DFSearch(it->_in.at(jdx).first,prindex);
    }
   }
@@ -470,8 +478,8 @@ CirMgr::printFloatGates() const
 {
   vector<unsigned> nu;
   vector<unsigned> wf;
-  for (std::map<unsigned int, CirGate *>::const_iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-    CirGate * x = it->second;
+  for (std::vector<CirGate *>::const_iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
+    CirGate * x = *it;//->second;
     if(x==0) continue;
     if((x->type==("AIG")||x->type==("PI"))&&x->_out.empty()){
       nu.push_back(x->gateID);
@@ -515,6 +523,7 @@ CirMgr::DFSearch_NoPrint(CirGate *it,unsigned &prindex, stringstream& ss) const{
    for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
     if(it->_in.at(jdx).first->_ref==CirGate::_globalRef) continue;
+    if(it == it->_in.at(jdx).first) continue;
     DFSearch_NoPrint(it->_in.at(jdx).first,prindex,ss);
    }
   }

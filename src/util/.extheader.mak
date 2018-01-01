@@ -1,4 +1,4 @@
-util.d: ../../include/util.h ../../include/rnGen.h ../../include/myUsage.h ../../include/myHashMap.h 
+util.d: ../../include/util.h ../../include/rnGen.h ../../include/myUsage.h ../../include/myHashMap.h ../../include/myHashSet.h 
 ../../include/util.h: util.h
 	@rm -f ../../include/util.h
 	@ln -fs ../src/util/util.h ../../include/util.h
@@ -11,3 +11,6 @@ util.d: ../../include/util.h ../../include/rnGen.h ../../include/myUsage.h ../..
 ../../include/myHashMap.h: myHashMap.h
 	@rm -f ../../include/myHashMap.h
 	@ln -fs ../src/util/myHashMap.h ../../include/myHashMap.h
+../../include/myHashSet.h: myHashSet.h
+	@rm -f ../../include/myHashSet.h
+	@ln -fs ../src/util/myHashSet.h ../../include/myHashSet.h

@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include "myHashSet.h"
 #include "cirGate.h"
 
 using namespace std;
@@ -23,8 +24,8 @@ using namespace std;
 extern CirMgr *cirMgr;
 
 #define CLEAN_GLIST                                                               \
-  for (std::map<unsigned int, CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){\
-    CirGate * x = it->second;\
+  for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){\
+    CirGate * &x = *it;\
     if(x==0) continue;\
     delete x;                                                                   \
   }
@@ -43,8 +44,9 @@ public:
   // return '0' if "gid" corresponds to an undefined gate.
   CirGate *getGate(unsigned gid) const
   {
-    std::map<unsigned int, CirGate *>::const_iterator tmp = _idMap.find(gid);
-    return ((tmp != _idMap.end()) ? tmp->second : 0);
+    //std::map<unsigned int, CirGate *>::const_iterator tmp = _idMap.find(gid);
+    //return ((tmp != _idMap.end()) ? tmp->second : 0);
+    return _idMap[gid];
   }
 
   // Member functions about circuit construction
@@ -54,6 +56,7 @@ public:
    // Member functions about circuit optimization
    void sweep();
    void optimize();
+   void streplace(CirGate *, CirGate *);
 
    // Member functions about simulation
    void randomSim();
@@ -91,7 +94,8 @@ private:
   vector<CirGate *> _PIlist;
   vector<CirGate *> _POlist;
   vector<CirGate *> _DFSlist;
-  map<unsigned, CirGate *> _idMap;
+  //map<unsigned, CirGate *> _idMap;
+  vector<CirGate *> _idMap;
   int m, i, l, o, a;
 };
 

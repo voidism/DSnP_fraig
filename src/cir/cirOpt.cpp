@@ -40,8 +40,8 @@ CirMgr::sweep()
         if(x==0) continue;
         DFSlistGen(x);
   } */
-  for (std::map<unsigned int, CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-    CirGate * x = it->second;
+  for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
+    CirGate * &x = *it;//->second;
     //cout << it -> first << endl;
     if(x==0) continue;
     if(x->unused == 1){
@@ -60,7 +60,7 @@ CirMgr::sweep()
     }
       delete x;
       //_idMap.erase(it);
-      it->second = 0;
+      *it = 0;
       a--;
     }
   }
@@ -69,11 +69,12 @@ void
 CirMgr::DFSlistGen(CirGate *it)
 {
   if(it->_ref == CirGate::_globalRef) return;
-  if(it->type == "UNDEF") {it->_ref = CirGate::_globalRef; return;}
+  //if(it->type == "UNDEF") { _DFSlist.push_back(it); it->_ref = CirGate::_globalRef; return;}
   if(!(it->_in.empty())){
    for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
     if(it->_in.at(jdx).first->_ref == CirGate::_globalRef) continue;
+    if(it == it->_in.at(jdx).first) continue;
     DFSlistGen(it->_in.at(jdx).first);
    }
   }
