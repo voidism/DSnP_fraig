@@ -46,8 +46,18 @@ CirMgr::sweep()
     if(x==0) continue;
     if(x->unused == 1){
       cout << "Sweeping: " << x->type << "(" << x->gateID << ") removed..." << endl;
-/*       std::map<unsigned int, CirGate *>::iterator tmp = _idMap.find(x->gateID);
-      if(tmp != _idMap.end()) _idMap.erase(tmp); */
+    for(vector<Cell>::iterator ii=x->_in.begin(); ii!=x->_in.end();ii++){
+      //cout << "(" << x->gateID << ")" << " IN: " <<ii->first->gateID << endl;
+       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end();){
+        //cout << "(" << x->gateID << ")" << " IN: " <<ii->first->gateID << " OUT: " << jj->first->gateID << endl;
+        if(jj->first == x){
+          //cout << "ERASE: " << x->gateID << endl;
+           ii->first->_out.erase(jj);
+           break;
+        }
+          else jj++;
+      }
+    }
       delete x;
       //_idMap.erase(it);
       it->second = 0;
@@ -78,18 +88,28 @@ void
 CirMgr::optimize()
 {
   (CirGate::_globalRef)++;
+  int modified=0;
   for(auto &x:_DFSlist){
-    DFSopt(x);
+    if(DFSopt(x)) modified++;
+  }
+
+  if(modified!=0){
+    if(!_DFSlist.empty()) _DFSlist.clear();
+    (CirGate::_globalRef)++;
+      for (auto &x:_POlist)
+      {
+        DFSlistGen(x);
+      }
   }
 }
 
-void
+bool
 CirMgr::DFSopt(CirGate *it)
 {
   
-  if(it->_ref == CirGate::_globalRef) return;
-  if((it->_in.empty())){ return; }
-  if(it->_in.size()<2){ return; }
+  if(it->_ref == CirGate::_globalRef) return 0;
+  if((it->_in.empty())){ return 0; }
+  if(it->_in.size()<2){ return 0; }
     //CirGate* congate = 0;
     CirGate* other = 0;
     bool inv = 0;
@@ -112,22 +132,30 @@ CirMgr::DFSopt(CirGate *it)
        for(auto & jj:xy.first->_in){
          if(jj.first == it){
            jj.first = alter;
+           jj.second = (bool)(inv^jj.second);
+           alter->_out.push_back(make_pair(xy.first,jj.second));
          }
         }
       }
        cout << "Simplifying: " << alter->gateID << " merging " << ((inv)? "!":"") << it->gateID << "..." << endl;
        //-------Modify his fanin gates' fanout (erase itself first)
        for(vector<Cell>::iterator ii=it->_in.begin(); ii!=it->_in.end();ii++){
-       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end(); jj++){
+       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end();){
         if(jj->first == it){
            ii->first->_out.erase(jj);
-           break;
           }
+          else jj++;
         }
       }
       //------------Add his fanout to the alter's fanout
-       alter->_out.insert(alter->_out.end(), it->_out.begin(), it->_out.end());
-       return;
+       //alter->_out.insert(alter->_out.end(), it->_out.begin(), it->_out.end());
+       it->unused = 1;
+       if(it->type!="PI" && it->type!="PO" && it->type!="CONST"){
+       delete it;
+       _idMap[it->gateID] = 0;
+       a--;
+      }
+       return 1;
       }
       if(it->_in.at(0).first == it->_in.at(1).first){
         CirGate* alter = 0;
@@ -140,24 +168,32 @@ CirMgr::DFSopt(CirGate *it)
        for(auto & jj:xy.first->_in){
          if(jj.first == it){
            jj.first = alter;
+           jj.second = (bool)(inv^jj.second);
+           alter->_out.push_back(make_pair(xy.first,jj.second));
          }
         }
       }
        cout << "Simplifying: " << alter->gateID << " merging " << ((inv)? "!":"") << it->gateID << "..." << endl;
        //-------Modify his fanin gates' fanout (erase itself first)
        for(vector<Cell>::iterator ii=it->_in.begin(); ii!=it->_in.end();ii++){
-       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end(); jj++){
+       for(vector<Cell>::iterator jj=ii->first->_out.begin(); jj!=ii->first->_out.end();){
         if(jj->first == it){
            ii->first->_out.erase(jj);
-           break;
           }
+          else  jj++;
         }
       }
       //------------Add his fanout to the alter's fanout
-       alter->_out.insert(alter->_out.end(), it->_out.begin(), it->_out.end());
-       return;
+       //alter->_out.insert(alter->_out.end(), it->_out.begin(), it->_out.end());
+       it->unused = 1;
+       if(it->type!="PI" && it->type!="PO" && it->type!="CONST"){
+       delete it;
+       _idMap[it->gateID] = 0;
+       a--;
       }
-      
+       return 1;
+      }
+      return 0;
 }
 
 /***************************************************/

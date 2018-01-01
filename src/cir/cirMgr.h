@@ -78,7 +78,7 @@ public:
   void DFSearch(CirGate *, unsigned &) const;
   void DFSearch_NoPrint(CirGate *, unsigned &, stringstream &ss) const;
   void DFSlistGen(CirGate *);
-  void DFSopt(CirGate *);
+  bool DFSopt(CirGate *);
   //void DFSearchByLevel_fanin(CirGate*, int, int) const;
   //void sortsingle(vector<CirGate*>);
   //void sortsingleint(vector<unsigned>);
@@ -93,7 +93,6 @@ private:
   vector<CirGate *> _DFSlist;
   map<unsigned, CirGate *> _idMap;
   int m, i, l, o, a;
-  //vector<string> c;
 };
 
 #endif // CIR_MGR_H

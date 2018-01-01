@@ -364,7 +364,7 @@ CirMgr::readCircuit(const string& fileName)
     cpr->symb = symbolname;
     lineNo++;
   }
-
+  if(!_DFSlist.empty()) _DFSlist.clear();
   (CirGate::_globalRef)++;
   for (auto &x:_POlist)
   {
