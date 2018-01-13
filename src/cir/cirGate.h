@@ -42,10 +42,10 @@ public:
   //hash function
   size_t operator () () const 
   {
-    if (_idin.empty()) return 0;
+    if (_in.empty()) return 0;
     size_t _i1;
     size_t _i2;
-    if ((_idin[0]<_idin[1])){
+    if ((_in[0].first->gateID)<(_in[1].first->gateID)){
       _i1 = ((_in[0].first->gateID) << 1) | ((size_t)(_in[0].second));
       _i2 = ((_in[1].first->gateID) << 1) | ((size_t)(_in[1].second));
     }

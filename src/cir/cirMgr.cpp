@@ -202,7 +202,7 @@ CirMgr::readCircuit(const string& fileName)
   }
   file.close();
   //(1)_Glist.push_back(new Const(0, 0));
-  _idMap.resize(1+i+o+a);
+  _idMap.resize(1+m+a);
   for (vector<CirGate *>::iterator x = _idMap.begin(); x != _idMap.end();x++)
     {*x = 0;}
   _idMap[0] = new Const(0, 0);//_Glist.back();
@@ -284,6 +284,7 @@ CirMgr::readCircuit(const string& fileName)
 
     for (auto &x : _idMap)
     {
+      if(x == 0) continue;
       if (x->_idin.empty()){}
       else
       {

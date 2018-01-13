@@ -23,11 +23,13 @@ using namespace std;
 
 extern CirMgr *cirMgr;
 
-#define CLEAN_GLIST                                                               \
-  for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){\
-    CirGate * &x = *it;\
-    if(x==0) continue;\
-    delete x;                                                                   \
+#define CLEAN_GLIST                                                                    \
+  for (std::vector<CirGate *>::iterator it = _idMap.begin(); it != _idMap.end(); ++it) \
+  {                                                                                    \
+    if (*it == 0)                                                                      \
+      continue;                                                                        \
+    delete *it;                                                                        \
+    *it = 0;                                                                           \
   }
 
 // TODO: Define your own data members and member functions
@@ -37,7 +39,6 @@ public:
   CirMgr() {}
   ~CirMgr()
   {
-    CLEAN_GLIST;
   }
 
   // Access functions

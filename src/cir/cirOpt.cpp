@@ -58,7 +58,7 @@ CirMgr::sweep()
           else jj++;
       }
     }
-      delete x;
+      delete *it;
       //_idMap.erase(it);
       *it = 0;
       a--;
