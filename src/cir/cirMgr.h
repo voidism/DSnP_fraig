@@ -73,6 +73,8 @@ public:
   void setSimLog(ofstream *logFile) { _simLog = logFile; }
   size_t sim(CirGate *);
   void sim_pattern(vector<size_t>);
+  void sim_random();
+  void classify_first_time(CirGate *, bool &,map<size_t, unsigned> &);
   bool split_fec_groups(vector<unsigned> &);
   void sort_and_pop();
   //bool fec_comp(const vector<unsigned> &, const vector<unsigned> &);

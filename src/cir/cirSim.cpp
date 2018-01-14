@@ -48,69 +48,19 @@ CirMgr::simstring(size_t sim){
 void
 CirMgr::randomSim()
 {
-  (CirGate::_globalRef)++;
-  _simValue[0] = 0;
-  _idMap[0]->_ref = (CirGate::_globalRef);
-  for (auto &x : _PIlist)
-  {
-    _simValue[x->gateID] = ( ((size_t)rnGen(INT_MAX)) << 32 ) | (size_t)rnGen(INT_MAX);
-    /* std::stringstream ss;
-    ss << bitset<sizeof(size_t) * 8>(_simValue[x->gateID]);
-    string value = ss.str(); */
-    cout << "PI[" << x->gateID << "]:" << endl;
-    cout << "= Value: ";
-    cout << simstring(_simValue[x->gateID]) << endl;
-    x->_ref = (CirGate::_globalRef);
+  unsigned limit = _DFSlist.size() / 10;
+  //unsigned fail_times = 0;
+  unsigned orgFECsize = INT_MAX;
+  unsigned count = 0;
+  while(true){
+    sim_random();
+    count++;
+    if(orgFECsize - _FEClist.size() < limit*_PIlist.size()) break;
+    if(count%(100*limit/_PIlist.size()) == 0)
+    orgFECsize = _FEClist.size();
   }
-  for(auto &y : _POlist)
-  {
-    _simValue[y->gateID] = sim(y->_in[0].first);
-    cout << "PO[" << y->gateID << "]: " << endl;
-    cout << "= Value: ";
-    cout << simstring(_simValue[y->gateID]) << endl;
-    y->_ref = (CirGate::_globalRef);
-  }
-
-  //Let's deal the FEC pairs!
-  //If it is the first time to sim, we need to recognize which gates are family.
-  map<size_t,unsigned> fecMap;
-  for(auto &x:_DFSlist){
-  if((x->type != "AIG") && (x->type != "CONST")) continue;
-  map<size_t,unsigned>::iterator got = fecMap.find (_simValue[x->gateID]);
-  if (got == fecMap.end())
-  {
-    map<size_t,unsigned>::iterator got2 = fecMap.find (~(_simValue[x->gateID]));
-    if(got2 != fecMap.end()){
-    cout << got2->first << " ~find!" << endl;
-    _FEClist[got2->second].push_back(x->gateID);
-    }
-    else{
-      cout << "new group" << _simValue[x->gateID] << endl;
-      vector<unsigned> temp;
-      temp.push_back(x->gateID);
-      fecMap[_simValue[x->gateID]] = _FEClist.size();
-      _FEClist.push_back(temp);
-    }
-  }
-  else{
-    std::cout << got->first << " find!" << endl;
-    _FEClist[got->second].push_back(x->gateID);
-  }
-  }
-
-  int i = 0;
-  size_t mask2 = 1;
-  for (auto &x : _FEClist)
-  {
-    if(x.size()==1) continue;
-    cout << "[" << i << "]";
-    for (auto &y : x)
-    {
-      cout << (((_simValue[y] & mask2) != (_simValue[x[0]] & mask2)) ? "!" : "" ) << y << " ";
-    }
-    cout << endl;
-    i++;
-  }
+  sort_and_pop();
+  cout << char(13) << flush << count*64 << " patterns simulated." << endl;
 }
 bool 
 fec_comp(const vector<unsigned>& a, const vector<unsigned>& b){
@@ -185,6 +135,94 @@ CirMgr::split_fec_groups(vector<unsigned> &orgroup)
     return 0;
 }
 
+
+void
+CirMgr::sim_random()
+{  //start sim!!!
+  (CirGate::_globalRef)++;
+  _simValue[0] = 0;
+  _idMap[0]->_ref = (CirGate::_globalRef);
+  for (auto &x : _PIlist)
+  {
+    _simValue[x->gateID] = ( ((size_t)rnGen(INT_MAX)) << 32 ) | (size_t)rnGen(INT_MAX);
+    x->_ref = (CirGate::_globalRef);
+  }
+  for (auto &y : _POlist)
+  {
+    _simValue[y->gateID] = sim(y->_in[0].first);
+    y->_ref = (CirGate::_globalRef);
+  }
+
+  //Let's deal the FEC pairs!
+  //If it is the first time to sim, we need to recognize which gates are family.
+  if (_FEClist.size() == 0)
+  {
+    bool conflag = 0;
+    map<size_t, unsigned> fecMap;
+    for (auto &x : _DFSlist)
+    {
+      classify_first_time(x, conflag, fecMap);
+    }
+    if(conflag == 0)
+      classify_first_time(_idMap[0], conflag, fecMap);
+    sort_and_pop();
+  }
+  //if it is not the first time
+  //we need to split the existed FEC groups with the data we get by furthur sim.
+  else
+  {
+    //cout << "split the existed groups!" << endl;
+    for (int idx = 0; idx < (int)_FEClist.size(); idx++)
+    {
+      if (_FEClist[idx].size() == 1)
+      {
+        _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+        _FEClist.pop_back();
+        idx--;
+      }
+      else
+      {
+        if(split_fec_groups(_FEClist[idx])){
+        _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+        _FEClist.pop_back();
+        idx--;
+        }
+      }
+    }
+  }
+  cout << char(13) << "Total #FEC Group = " << _FEClist.size();
+  cout.flush();
+}
+
+void
+CirMgr::classify_first_time(CirGate* x,bool& flag,map<size_t, unsigned> &fecMap)
+{
+  if(x->gateID == 0) { flag = 1; }
+  if ((x->type != "AIG") && (x->type != "CONST"))
+    return;
+  map<size_t, unsigned>::iterator got = fecMap.find(_simValue[x->gateID]);
+  if (got == fecMap.end())
+  {
+    map<size_t, unsigned>::iterator got2 = fecMap.find(~(_simValue[x->gateID]));
+    if (got2 != fecMap.end())
+    {
+      _FEClist[got2->second].push_back(x->gateID);
+    }
+    else
+    {
+      vector<unsigned> temp;
+      temp.push_back(x->gateID);
+      fecMap[_simValue[x->gateID]] = _FEClist.size();
+      _FEClist.push_back(temp);
+    }
+  }
+  else
+  {
+    _FEClist[got->second].push_back(x->gateID);
+  }
+}
+
+
 void
 CirMgr::sim_pattern(vector<size_t> pat)
 {
@@ -211,41 +249,12 @@ CirMgr::sim_pattern(vector<size_t> pat)
   {
     bool conflag = 0;
     map<size_t, unsigned> fecMap;
-    _DFSlist.push_back(_idMap[0]);
     for (auto &x : _DFSlist)
     {
-      if(x->gateID == 0) {
-        conflag = 1;
-        _DFSlist.pop_back();
-      }
-        if ((x->type != "AIG") && (x->type != "CONST"))
-          continue;
-        map<size_t, unsigned>::iterator got = fecMap.find(_simValue[x->gateID]);
-        if (got == fecMap.end())
-        {
-          map<size_t, unsigned>::iterator got2 = fecMap.find(~(_simValue[x->gateID]));
-          if (got2 != fecMap.end())
-          {
-            //cout << got2->first << " ~find!" << endl;
-            _FEClist[got2->second].push_back(x->gateID);
-          }
-          else
-          {
-            //cout << "new group" << _simValue[x->gateID] << endl;
-            vector<unsigned> temp;
-            temp.push_back(x->gateID);
-            fecMap[_simValue[x->gateID]] = _FEClist.size();
-            _FEClist.push_back(temp);
-          }
-      }
-      else
-      {
-        //std::cout << got->first << " find!" << endl;
-        _FEClist[got->second].push_back(x->gateID);
-      }
+      classify_first_time(x, conflag, fecMap);
     }
     if(conflag == 0)
-        _DFSlist.pop_back();
+      classify_first_time(_idMap[0], conflag, fecMap);
     sort_and_pop();
   }
   //if it is not the first time
@@ -263,9 +272,6 @@ CirMgr::sim_pattern(vector<size_t> pat)
       }
       else
       {
-/* 
-        if(_FEClist[idx][0]==0)
-          cout << "fuckyou!!\n\n\n\n\n"; */
         if(split_fec_groups(_FEClist[idx])){
         _FEClist[idx] = _FEClist[_FEClist.size() - 1];
         _FEClist.pop_back();
@@ -274,7 +280,8 @@ CirMgr::sim_pattern(vector<size_t> pat)
       }
     }
   }
-  cout << char(13) << flush << "Total #FEC Group = " << _FEClist.size();
+  cout << char(13) << "Total #FEC Group = " << _FEClist.size();
+  cout.flush();
 }
 
 void
