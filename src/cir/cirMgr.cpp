@@ -202,9 +202,10 @@ CirMgr::readCircuit(const string& fileName)
   }
   file.close();
   //(1)_Glist.push_back(new Const(0, 0));
-  _idMap.resize(1+m+a);
-  for (vector<CirGate *>::iterator x = _idMap.begin(); x != _idMap.end();x++)
-    {*x = 0;}
+  _idMap.assign(1+m+a,0);
+  _simValue.assign(1+m+a,0);
+  /* for (vector<CirGate *>::iterator x = _idMap.begin(); x != _idMap.end();x++)
+    {*x = 0;} */
   _idMap[0] = new Const(0, 0);//_Glist.back();
   //read PI
   if(content.empty()){
@@ -543,6 +544,22 @@ CirMgr::DFSearch_NoPrint(CirGate *it,unsigned &prindex, stringstream& ss) const{
 void
 CirMgr::printFECPairs() const
 {
+  int i = 0;
+  size_t mask2 = 1;
+  for (auto &x : _FEClist)
+  {
+    if(x.size()==1) continue;
+    cout << "[" << i << "] ";
+    bool fr = 0;
+    for (auto &y : x)
+    {
+      cout << (fr ? " " : "") ;
+      fr = 1;
+      cout << (((_simValue[y] & mask2) != (_simValue[x[0]] & mask2)) ? "!" : "") << y;
+    }
+    cout << endl;
+    i++;
+  }
 }
 
 void

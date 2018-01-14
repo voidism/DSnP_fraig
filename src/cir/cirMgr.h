@@ -39,6 +39,13 @@ public:
   CirMgr() {}
   ~CirMgr()
   {
+    for (std::vector<CirGate *>::iterator it = _idMap.begin(); it != _idMap.end(); ++it)
+    {
+      if (*it == 0)
+        continue;
+      delete *it;
+      *it = 0;
+    }
   }
 
   // Access functions
@@ -53,21 +60,25 @@ public:
   // Member functions about circuit construction
   bool readCircuit(const string &);
 
+  // Member functions about circuit optimization
+  void sweep();
+  void optimize();
+  void streplace(CirGate *, CirGate *);
 
-   // Member functions about circuit optimization
-   void sweep();
-   void optimize();
-   void streplace(CirGate *, CirGate *);
+  // Member functions about simulation
+  void randomSim();
+  void fileSim(ifstream &);
+  void setSimLog(ofstream *logFile) { _simLog = logFile; }
+  size_t sim(CirGate *);
+  void sim_pattern(vector<size_t>);
+  bool split_fec_groups(vector<unsigned> &);
+  void sort_and_pop();
+  //bool fec_comp(const vector<unsigned> &, const vector<unsigned> &);
 
-   // Member functions about simulation
-   void randomSim();
-   void fileSim(ifstream&);
-   void setSimLog(ofstream *logFile) { _simLog = logFile; }
-
-   // Member functions about fraig
-   void strash();
-   void printFEC() const;
-   void fraig();
+  // Member functions about fraig
+  void strash();
+  void printFEC() const;
+  void fraig();
 
   // Member functions about circuit reporting
   void printSummary() const;
@@ -76,27 +87,25 @@ public:
   void printPOs() const;
   void printFloatGates() const;
   void writeAag(ostream &) const;
-   void printFECPairs() const;
-   void writeGate(ostream&, CirGate*) const;
+  void printFECPairs() const;
+  void writeGate(ostream &, CirGate *) const;
 
   void DFSearch(CirGate *, unsigned &) const;
   void DFSearch_NoPrint(CirGate *, unsigned &, stringstream &ss) const;
   void DFSlistGen(CirGate *);
   bool DFSopt(CirGate *);
-  //void DFSearchByLevel_fanin(CirGate*, int, int) const;
-  //void sortsingle(vector<CirGate*>);
-  //void sortsingleint(vector<unsigned>);
-  void insertSort(vector<pair<CirGate*,bool>>&);
-  //bool cmp(const pair<CirGate*,bool> i1, const pair<CirGate*,bool> i2);
-  
+  void insertSort(vector<pair<CirGate *, bool>> &);
+
 private:
-  ofstream           *_simLog;
+  ofstream *_simLog;
   //vector<CirGate *> _Glist;
   vector<CirGate *> _PIlist;
   vector<CirGate *> _POlist;
   vector<CirGate *> _DFSlist;
   //map<unsigned, CirGate *> _idMap;
   vector<CirGate *> _idMap;
+  vector<size_t> _simValue;
+  vector<vector<unsigned>> _FEClist;
   int m, i, l, o, a;
 };
 
