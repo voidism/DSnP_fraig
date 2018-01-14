@@ -28,15 +28,31 @@ unsigned CirGate::_globalRef = 0;
 void
 CirGate::reportGate() const
 {
-  cout << "==================================================" << endl;
+  cout << "================================================================================" << endl;
   stringstream ss;
   string sb = ((symb=="")? "":"\""+symb+"\"");
   ss << "= " << type << "(" << gateID << ")" << sb << ", line " << ((linenum==0)? 0: (linenum+1) );
   string s = ss.str();
-   s.resize(49, ' ');
-   s += "=\n";
-   cout << s;
-   cout << "==================================================" << endl;
+  cout << s << endl;
+  cout << "= FECs:";
+  vector<unsigned> *fd = 0;
+  for(auto &y:cirMgr->_FEClist){
+    for(auto &x:y){
+      if(x == gateID){
+        fd = &y;
+      }
+    }
+  }
+  if(fd!=0){
+    for(auto &x:*fd){
+      if(x!=gateID)
+      cout << ((cirMgr->_simValue[x]!=cirMgr->_simValue[(*fd)[0]])?" !":" ") << x;
+    }
+  }
+  else cout << " ";
+  cout << endl;
+  cout << "= Value: " << cirMgr->simstring(cirMgr->_simValue[gateID]) << endl;
+  cout << "================================================================================" << endl;
 }
 
 void CirGate::DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_level,bool inv) const{

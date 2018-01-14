@@ -539,7 +539,19 @@ CirMgr::DFSearch_NoPrint(CirGate *it,unsigned &prindex, stringstream& ss) const{
   }//(symbol name)
   it->_ref=CirGate::_globalRef;
 }
-
+/* vector<unsigned>
+CirMgr::getFECgroup(const unsigned &tar)const
+{
+  //for (vector<vector<unsigned>>::const_iterator it = _FEClist.begin(); it != _FEClist.end();it++){
+  for(auto &y:_FEClist){
+    for(auto &x:y){
+      if(x == tar){
+        return y;
+      }
+    }
+  }
+  return 0;
+} */
 
 void
 CirMgr::printFECPairs() const

@@ -35,6 +35,8 @@ extern CirMgr *cirMgr;
 // TODO: Define your own data members and member functions
 class CirMgr
 {
+  friend CirGate;
+
 public:
   CirMgr() {}
   ~CirMgr()
@@ -81,6 +83,8 @@ public:
   void fraig();
 
   // Member functions about circuit reporting
+  string simstring(size_t);
+  //vector<unsigned> getFECgroup(const unsigned&) const;
   void printSummary() const;
   void printNetlist() const;
   void printPIs() const;
