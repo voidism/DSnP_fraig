@@ -251,8 +251,12 @@ void CirMgr::updateLog(size_t pos)
 void
 CirMgr::idFecMapGen()
 {
+  for(auto &x:_idMap){
+    x->fecAddr = INT_MAX;
+  }
   for (unsigned idx = 0; idx < _FEClist.size();idx++){
     for(auto &x:_FEClist[idx]){
+      if(_idMap[x]==0) continue;
       _idMap[x]->fecAddr = idx;
     }
   }
@@ -303,6 +307,7 @@ CirMgr::sim_pattern(vector<size_t> pat)
       if (_FEClist[idx].size() == 1)
       {
         _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+        _idMap[_FEClist[idx][0]]->fecAddr = INT_MAX;
         _FEClist.pop_back();
         idx--;
       }
@@ -310,6 +315,7 @@ CirMgr::sim_pattern(vector<size_t> pat)
       {
         if(split_fec_groups(_FEClist[idx])){
         _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+        _idMap[_FEClist[idx][0]]->fecAddr = INT_MAX;
         _FEClist.pop_back();
         idx--;
         }
