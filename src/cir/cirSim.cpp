@@ -12,12 +12,13 @@
 #include <algorithm>
 #include <cassert>
 #include <sstream>
+#include <cmath>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
 #include <bitset>
-#include <map>
-
+#include <unordered_map>
+using std::unordered_map;
 using namespace std;
 
 // TODO: Keep "CirMgr::randimSim()" and "CirMgr::fileSim()" for cir cmd.
@@ -48,19 +49,22 @@ CirMgr::simstring(size_t sim){
 void
 CirMgr::randomSim()
 {
-  unsigned limit = _DFSlist.size() / 10;
-  //unsigned fail_times = 0;
+  unsigned limit = log(_DFSlist.size()) / log(2.5) + 0.5;
+  unsigned fail_times = 0;
   unsigned orgFECsize = INT_MAX;
   unsigned count = 0;
   while(true){
     sim_random();
     count++;
-    if(orgFECsize - _FEClist.size() < limit*_PIlist.size()) break;
-    if(count%(100*limit/_PIlist.size()) == 0)
+    if(orgFECsize==_FEClist.size()) fail_times++;
+    else fail_times = 0;
+    //if(count%(100*limit/_PIlist.size()) == 0)
     orgFECsize = _FEClist.size();
+    if((fail_times>limit)) break;
   }
   sort_and_pop();
-  cout << char(13) << flush << count*64 << " patterns simulated." << endl;
+  cout << char(13) << count*64 << " patterns simulated." << endl;
+  cout.flush();
 }
 bool 
 fec_comp(const vector<unsigned>& a, const vector<unsigned>& b){
@@ -92,14 +96,15 @@ bool
 CirMgr::split_fec_groups(vector<unsigned> &orgroup)
 {
   int flag = 0;
-  map<size_t,unsigned> fecMap;
+  unordered_map<size_t,unsigned> fecMap;
   vector<vector<unsigned>> _tempFEClist;
   for (auto &it : orgroup)
   {
     CirGate *x = _idMap[it];
+    if (x == 0) continue;
     if ((x->type != "AIG") && (x->type != "CONST"))
       continue;
-    map<size_t, unsigned>::iterator got = fecMap.find(_simValue[x->gateID]);
+    unordered_map<size_t,unsigned>::iterator got = fecMap.find(_simValue[x->gateID]);
     if (got == fecMap.end())
     {
       got = fecMap.find(~(_simValue[x->gateID]));
@@ -158,7 +163,7 @@ CirMgr::sim_random()
   if (_FEClist.size() == 0)
   {
     bool conflag = 0;
-    map<size_t, unsigned> fecMap;
+    unordered_map<size_t,unsigned> fecMap;
     for (auto &x : _DFSlist)
     {
       classify_first_time(x, conflag, fecMap);
@@ -195,15 +200,15 @@ CirMgr::sim_random()
 }
 
 void
-CirMgr::classify_first_time(CirGate* x,bool& flag,map<size_t, unsigned> &fecMap)
+CirMgr::classify_first_time(CirGate* x,bool& flag,unordered_map<size_t,unsigned> &fecMap)
 {
   if(x->gateID == 0) { flag = 1; }
   if ((x->type != "AIG") && (x->type != "CONST"))
     return;
-  map<size_t, unsigned>::iterator got = fecMap.find(_simValue[x->gateID]);
+  unordered_map<size_t,unsigned>::iterator got = fecMap.find(_simValue[x->gateID]);
   if (got == fecMap.end())
   {
-    map<size_t, unsigned>::iterator got2 = fecMap.find(~(_simValue[x->gateID]));
+    unordered_map<size_t,unsigned>::iterator got2 = fecMap.find(~(_simValue[x->gateID]));
     if (got2 != fecMap.end())
     {
       _FEClist[got2->second].push_back(x->gateID);
@@ -222,6 +227,22 @@ CirMgr::classify_first_time(CirGate* x,bool& flag,map<size_t, unsigned> &fecMap)
   }
 }
 
+void updateLog(size_t pos)
+{
+  if(_simLog==0) return;
+  size_t submask = 1<<63;
+  while(submask > pos){
+    for(auto &x:_PIlist){
+      *_simLog << _simValue[x->gateID] & submask;
+    }
+    *_simLog << ' ';
+    for(auto &x:_POlist){
+      *_simLog << _simValue[x->gateID] & submask;
+    }
+    *_simLog << '\n';
+    submask >> 1;
+  }
+}
 
 void
 CirMgr::sim_pattern(vector<size_t> pat)
@@ -248,7 +269,7 @@ CirMgr::sim_pattern(vector<size_t> pat)
   if (_FEClist.size() == 0)
   {
     bool conflag = 0;
-    map<size_t, unsigned> fecMap;
+    unordered_map<size_t,unsigned> fecMap;
     for (auto &x : _DFSlist)
     {
       classify_first_time(x, conflag, fecMap);
@@ -280,8 +301,6 @@ CirMgr::sim_pattern(vector<size_t> pat)
       }
     }
   }
-  cout << char(13) << "Total #FEC Group = " << _FEClist.size();
-  cout.flush();
 }
 
 void
@@ -295,10 +314,13 @@ CirMgr::fileSim(ifstream &patternFile)
     {
       while (line[0] == ' ')
         line = line.substr(1);
+      if(line == "" || line == "\r" || line == "\n" || line == "\r\n") continue;
       if (line.size() != (unsigned)i)
       {
         cerr << "Error: Pattern(" << line << ") length(" << line.size()
              << ") does not match the number of inputs(" << i << ") in a circuit!!" << endl;
+        cout << char(13) << 0 << " patterns simulated." << endl;
+        cout.flush();
         return;
       }
       for (int idx = 0; idx < i; idx++)
@@ -306,23 +328,47 @@ CirMgr::fileSim(ifstream &patternFile)
         if(line[idx] != '0' && line[idx] != '1')
 			  {
 				  cerr << "Error: Pattern(" << line << ") contains a non-0/1 characters(\'" << line[idx] << "\')." << endl;
-				  return;
-			  }
+				  cout << char(13) << 0 << " patterns simulated." << endl;
+          cout.flush();
+          return;
+        }
         patterns[idx] = (patterns[idx] << 1) | (size_t)(line[idx] != '0');
       }
       count64++;
       if ((count64 % 64) == 0)
       {
         sim_pattern(patterns);
+        updateLog(0);
+        cout << char(13) << "Total #FEC Group = " << _FEClist.size();
+        cout.flush();
       }
     }
-    if (_FEClist.size() == 0)
+    bool unsim = 0;
+    unsigned temp64 = count64;
+    if (count64 % 64 != 0)
+    {
+      unsim = 1;
+      if(_FEClist.size() != 0){
+        while (count64 % 64 != 0)
+        {
+          for (int idx = 0; idx < i; idx++)
+          {
+            patterns[idx] = (patterns[idx] << 1) ;
+          }
+          count64++;
+        }
+      }
+    }
+    if (unsim)
     {
       sim_pattern(patterns);
+      cout << char(13) << "Total #FEC Group = " << _FEClist.size();
+      cout.flush();
     }
     //sort(_FEClist.begin(), _FEClist.end(), fec_comp);
     sort_and_pop();
-    cout << char(13) << flush << count64 << " patterns simulated." << endl;
+    cout << char(13) << temp64 << " patterns simulated." << endl;
+    cout.flush();
 }
 
 /*************************************************/

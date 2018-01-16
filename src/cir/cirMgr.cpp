@@ -202,8 +202,8 @@ CirMgr::readCircuit(const string& fileName)
   }
   file.close();
   //(1)_Glist.push_back(new Const(0, 0));
-  _idMap.assign(1+m+a,0);
-  _simValue.assign(1+m+a,0);
+  _idMap.assign(1+m+o,0);
+  _simValue.assign(1+m+o,0);
   /* for (vector<CirGate *>::iterator x = _idMap.begin(); x != _idMap.end();x++)
     {*x = 0;} */
   _idMap[0] = new Const(0, 0);//_Glist.back();
@@ -259,7 +259,7 @@ CirMgr::readCircuit(const string& fileName)
       errInt = lit;
       return parseError(REDEF_GATE);
     }
-    _POlist.push_back(new PO(/* lit / 2,  */lit, lineNo, ++num));
+    _POlist.push_back(new PO(lit, lineNo, ++num));
     _idMap[num] = _POlist.back();
     lineNo++;
   }
@@ -282,7 +282,7 @@ CirMgr::readCircuit(const string& fileName)
 
   //for (unsigned i = 0; i < _Glist.size();i++){
   //for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-
+    //connection between gates!
     for (auto &x : _idMap)
     {
       if(x == 0) continue;
@@ -380,11 +380,12 @@ CirMgr::readCircuit(const string& fileName)
     DFSlistGen(x);
   }
   //for(auto& x:_Glist){//clean unused gate
-  for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
-        CirGate * &x = *it;//->second;
-        if(x==0) continue;
-        if(x->_ref != CirGate::_globalRef && x->type!="PI" && x->type!="PO" && x->type!="CONST"){
-          x->unused = 1;
+  //for (std::vector<CirGate *>::iterator it=_idMap.begin(); it!=_idMap.end(); ++it){//clean unused gate
+  for(unsigned idx = 0;idx<_idMap.size();idx++){
+        //CirGate * &x = *it;//->second;
+        if(_idMap[idx]==0) continue;
+        if(_idMap[idx]->_ref != CirGate::_globalRef && _idMap[idx]->type!="PI" && _idMap[idx]->type!="PO" && _idMap[idx]->type!="CONST"){
+          _idMap[idx]->unused = 1;
         }
   }
   
@@ -539,19 +540,6 @@ CirMgr::DFSearch_NoPrint(CirGate *it,unsigned &prindex, stringstream& ss) const{
   }//(symbol name)
   it->_ref=CirGate::_globalRef;
 }
-/* vector<unsigned>
-CirMgr::getFECgroup(const unsigned &tar)const
-{
-  //for (vector<vector<unsigned>>::const_iterator it = _FEClist.begin(); it != _FEClist.end();it++){
-  for(auto &y:_FEClist){
-    for(auto &x:y){
-      if(x == tar){
-        return y;
-      }
-    }
-  }
-  return 0;
-} */
 
 void
 CirMgr::printFECPairs() const

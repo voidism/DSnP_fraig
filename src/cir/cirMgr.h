@@ -16,6 +16,8 @@
 #include <map>
 #include "myHashSet.h"
 #include "cirGate.h"
+#include <unordered_map>
+using std::unordered_map;
 
 using namespace std;
 
@@ -72,9 +74,10 @@ public:
   void fileSim(ifstream &);
   void setSimLog(ofstream *logFile) { _simLog = logFile; }
   size_t sim(CirGate *);
+  void updateLog(size_t mask);
   void sim_pattern(vector<size_t>);
   void sim_random();
-  void classify_first_time(CirGate *, bool &,map<size_t, unsigned> &);
+  void classify_first_time(CirGate *, bool &,unordered_map<size_t,unsigned> &);
   bool split_fec_groups(vector<unsigned> &);
   void sort_and_pop();
   //bool fec_comp(const vector<unsigned> &, const vector<unsigned> &);
@@ -83,6 +86,8 @@ public:
   void strash();
   void printFEC() const;
   void fraig();
+  bool prove(unsigned &a, unsigned &b, SatSolver &s);
+  void freplace(CirGate *, CirGate *);
 
   // Member functions about circuit reporting
   string simstring(size_t);

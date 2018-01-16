@@ -71,7 +71,8 @@ public:
 
   void DFSearchByLevel_fanin(const CirGate *it,int dig_level,int total_level,bool inv) const;
   void DFSearchByLevel_fanout(const CirGate *it,int dig_level,int total_level,bool inv) const;
-
+  Var getVar() const { return _var; }
+  void setVar(const Var& v) { _var = v; }
 private:
 protected:
   static unsigned _globalRef;
@@ -90,6 +91,7 @@ protected:
   unsigned linenum;
   string type;
   string symb = "";
+  Var        _var;
 };
 
 /* struct Cell{

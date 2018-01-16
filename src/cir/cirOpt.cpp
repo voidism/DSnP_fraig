@@ -73,9 +73,9 @@ CirMgr::DFSlistGen(CirGate *it)
   if(!(it->_in.empty())){
    for (int jdx = 0; jdx < (int)it->_in.size(); jdx++)
    {
-    if(it->_in.at(jdx).first->_ref == CirGate::_globalRef) continue;
-    if(it == it->_in.at(jdx).first) continue;
-    DFSlistGen(it->_in.at(jdx).first);
+    if(it->_in[jdx].first->_ref == CirGate::_globalRef) continue;
+    if(it == it->_in[jdx].first) continue;
+    DFSlistGen(it->_in[jdx].first);
    }
   }
   _DFSlist.push_back(it);

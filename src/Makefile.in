@@ -36,7 +36,7 @@ clean:
 depend: .depend.mak
 .depend.mak: $(CSRCS) $(CHDRS)
 	@$(ECHO) Making dependencies ...
-	@$(CXX) -MM $(DEPENDDIR) $(CSRCS) > $@
+	@$(CXX) $(CFLAGS) -MM $(DEPENDDIR) $(CSRCS) > $@
 
 ## Linking external headers
 extheader: .extheader.mak
