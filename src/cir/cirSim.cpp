@@ -65,6 +65,7 @@ CirMgr::randomSim()
   sort_and_pop();
   cout << char(13) << count*64 << " patterns simulated." << endl;
   cout.flush();
+  idFecMapGen();
 }
 bool 
 fec_comp(const vector<unsigned>& a, const vector<unsigned>& b){
@@ -203,6 +204,7 @@ CirMgr::sim_random()
 void
 CirMgr::classify_first_time(CirGate* x,bool& flag,unordered_map<size_t,unsigned> &fecMap)
 {
+  if(x==0) return;
   if(x->gateID == 0) { flag = 1; }
   if ((x->type != "AIG") && (x->type != "CONST"))
     return;
@@ -243,6 +245,16 @@ void CirMgr::updateLog(size_t pos)
     }
     *_simLog << '\n';
     submask >>= 1;
+  }
+}
+
+void
+CirMgr::idFecMapGen()
+{
+  for (unsigned idx = 0; idx < _FEClist.size();idx++){
+    for(auto &x:_FEClist[idx]){
+      _idMap[x]->fecAddr = idx;
+    }
   }
 }
 
@@ -362,6 +374,7 @@ CirMgr::fileSim(ifstream &patternFile)
     sort_and_pop();
     cout << char(13) << count64 << " patterns simulated." << endl;
     cout.flush();
+    idFecMapGen();
 }
 
 /*************************************************/

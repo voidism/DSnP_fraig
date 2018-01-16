@@ -61,7 +61,7 @@ CirMgr::sweep()
       delete *it;
       //_idMap.erase(it);
       *it = 0;
-      a--;
+      a--;m--;
     }
   }
 }
@@ -154,7 +154,7 @@ CirMgr::DFSopt(CirGate *it)
        if(it->type!="PI" && it->type!="PO" && it->type!="CONST"){
        delete it;
        _idMap[it->gateID] = 0;
-       a--;
+       a--;m--;
       }
        return 1;
       }
@@ -190,7 +190,7 @@ CirMgr::DFSopt(CirGate *it)
        if(it->type!="PI" && it->type!="PO" && it->type!="CONST"){
        delete it;
        _idMap[it->gateID] = 0;
-       a--;
+       a--;m--;
       }
        return 1;
       }

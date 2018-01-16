@@ -92,6 +92,7 @@ protected:
   string type;
   string symb = "";
   Var        _var;
+  unsigned fecAddr;
 };
 
 /* struct Cell{

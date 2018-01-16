@@ -80,13 +80,14 @@ public:
   void classify_first_time(CirGate *, bool &,unordered_map<size_t,unsigned> &);
   bool split_fec_groups(vector<unsigned> &);
   void sort_and_pop();
+  void idFecMapGen();
   //bool fec_comp(const vector<unsigned> &, const vector<unsigned> &);
 
   // Member functions about fraig
   void strash();
   void printFEC() const;
   void fraig();
-  bool prove(unsigned &a, unsigned &b, SatSolver &s);
+  bool prove(unsigned &, unsigned &, SatSolver &,vector<Var>&);
   void freplace(CirGate *, CirGate *);
 
   // Member functions about circuit reporting
