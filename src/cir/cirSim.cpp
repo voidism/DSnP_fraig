@@ -154,7 +154,8 @@ CirMgr::sim_random()
   }
   for (auto &y : _POlist)
   {
-    _simValue[y->gateID] = sim(y->_in[0].first);
+    size_t ans = sim(y->_in[0].first);
+    _simValue[y->gateID] = ((y->_in[0].second) ? ~ans : ans);
     y->_ref = (CirGate::_globalRef);
   }
 
@@ -227,20 +228,21 @@ CirMgr::classify_first_time(CirGate* x,bool& flag,unordered_map<size_t,unsigned>
   }
 }
 
-void updateLog(size_t pos)
+void CirMgr::updateLog(size_t pos)
 {
-  if(_simLog==0) return;
-  size_t submask = 1<<63;
-  while(submask > pos){
+  size_t submask = 1;
+  submask <<= 63;
+  while (submask > pos)
+  {
     for(auto &x:_PIlist){
-      *_simLog << _simValue[x->gateID] & submask;
+      *_simLog << (bool)(_simValue[x->gateID] & submask);
     }
     *_simLog << ' ';
     for(auto &x:_POlist){
-      *_simLog << _simValue[x->gateID] & submask;
+      *_simLog << (bool)(_simValue[x->gateID] & submask);
     }
     *_simLog << '\n';
-    submask >> 1;
+    submask >>= 1;
   }
 }
 
@@ -260,7 +262,8 @@ CirMgr::sim_pattern(vector<size_t> pat)
   }
   for (auto &y : _POlist)
   {
-    _simValue[y->gateID] = sim(y->_in[0].first);
+    size_t ans = sim(y->_in[0].first);
+    _simValue[y->gateID] = ((y->_in[0].second) ? ~ans : ans);
     y->_ref = (CirGate::_globalRef);
   }
 
@@ -338,36 +341,26 @@ CirMgr::fileSim(ifstream &patternFile)
       if ((count64 % 64) == 0)
       {
         sim_pattern(patterns);
-        updateLog(0);
+        if(_simLog!=0) updateLog(0);
         cout << char(13) << "Total #FEC Group = " << _FEClist.size();
         cout.flush();
       }
     }
-    bool unsim = 0;
-    unsigned temp64 = count64;
     if (count64 % 64 != 0)
     {
-      unsim = 1;
-      if(_FEClist.size() != 0){
-        while (count64 % 64 != 0)
-        {
-          for (int idx = 0; idx < i; idx++)
-          {
-            patterns[idx] = (patterns[idx] << 1) ;
-          }
-          count64++;
-        }
+      for (int idx = 0; idx < i; idx++){
+        patterns[idx] = (patterns[idx] << (64 - count64));
       }
-    }
-    if (unsim)
-    {
       sim_pattern(patterns);
+      size_t pos = 1;
+      pos <<= (63 - count64);
+      if(_simLog!=0) updateLog(pos);
       cout << char(13) << "Total #FEC Group = " << _FEClist.size();
       cout.flush();
     }
     //sort(_FEClist.begin(), _FEClist.end(), fec_comp);
     sort_and_pop();
-    cout << char(13) << temp64 << " patterns simulated." << endl;
+    cout << char(13) << count64 << " patterns simulated." << endl;
     cout.flush();
 }
 
