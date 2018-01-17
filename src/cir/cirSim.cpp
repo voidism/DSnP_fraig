@@ -49,7 +49,7 @@ CirMgr::simstring(size_t sim){
 void
 CirMgr::randomSim()
 {
-  unsigned limit = log(_DFSlist.size()) / 2;
+  unsigned limit = log(_DFSlist.size()) / 2 + 3;
   unsigned fail_times = 0;
   unsigned orgFECsize = INT_MAX;
   unsigned count = 0;

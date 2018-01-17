@@ -76,15 +76,6 @@ CirMgr::prove(unsigned &g1, unsigned &g2, SatSolver& s,vector<Var>& Varnode)
   cout << ((result) ? "SAT" : "UNSAT") << "!!";
   cout.flush();
   }
-  /* else if(g1==0){
-    s.assumeRelease();            // Clear assumptions
-    s.assumeProperty(Varnode[g2], inv); // k = 1
-    cout << char(13) << "Proving " << g2 << " = "
-         << ((inv) ? "1" : "0") << "...";
-    result = s.assumpSolve();
-    cout << ((result)? "SAT" : "UNSAT") << "!!";
-    cout.flush();
-  } */
 
   cout.flush();
   return result;
@@ -140,7 +131,8 @@ CirMgr::fraig()
 
         unsigned AD = _DFSlist[idx]->fecAddr;
         unsigned &ID = _DFSlist[idx]->gateID;
-        unsigned mypos;
+        unsigned mypos = 0;
+        
         /* if (_FEClist[AD].size() == 1)
         {
           _FEClist[AD] = _FEClist[_FEClist.size() - 1];
@@ -278,6 +270,8 @@ if(AD > _FEClist.size()) break;
          } */
          _DFSlist[idx]->fecAddr = INT_MAX;
         }
+
+        
          /* 
          if(_FEClist[_DFSlist[idx]->fecAddr].size()==1){
           _FEClist[_DFSlist[idx]->fecAddr] = _FEClist[_FEClist.size() - 1];
