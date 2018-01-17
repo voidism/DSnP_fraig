@@ -64,26 +64,27 @@ CirMgr::prove(unsigned &g1, unsigned &g2, SatSolver& s,vector<Var>& Varnode)
 {
   bool result;
   bool inv = ((_simValue[g1]) != (_simValue[g2]));
-  if(g1!=0){
+  if(true){
   Var newV = s.newVar();
   s.addXorCNF(newV, Varnode[g1], false, Varnode[g2], inv);
   s.assumeRelease();            // Clear assumptions
   s.assumeProperty(newV, true); // k = 1
+  s.assumeProperty(Varnode[0], false);
   cout << char(13) << "Proving (" << g1 << ", "
        << ((inv) ? "!" : "") << g2 << ")...";
   result = s.assumpSolve();
   cout << ((result) ? "SAT" : "UNSAT") << "!!";
   cout.flush();
   }
-  else if(g1==0){
+  /* else if(g1==0){
     s.assumeRelease();            // Clear assumptions
-    s.assumeProperty(Varnode[g2], !inv); // k = 1
+    s.assumeProperty(Varnode[g2], inv); // k = 1
     cout << char(13) << "Proving " << g2 << " = "
          << ((inv) ? "1" : "0") << "...";
     result = s.assumpSolve();
     cout << ((result)? "SAT" : "UNSAT") << "!!";
     cout.flush();
-  }
+  } */
 
   cout.flush();
   return result;
@@ -92,13 +93,15 @@ CirMgr::prove(unsigned &g1, unsigned &g2, SatSolver& s,vector<Var>& Varnode)
 void
 CirMgr::fraig()
 {
+  CirGate::_fraigRef++;
   SatSolver s;
   vector<size_t> goodpatterns(i,0);
   unsigned gpa = 0;
   vector<vector<unsigned>> to_merge;
   vector<Var> Varnode(_idMap.size());
   unsigned tempsize = _FEClist.size();
-  while (_FEClist.size() != 0)
+
+  while (_FEClist.size() > 0)//-----------------big while loop--------
   {
     //unordered_map<unsigned, vector<unsigned> *> merge_map;
     s.reset();
@@ -110,41 +113,113 @@ CirMgr::fraig()
       //x->setVar(s.newVar());
       }
     }
+    for(auto &x:_PIlist){
+      if(x == 0) continue;
+      Varnode[x->gateID]=(s.newVar());
+    }
+    Varnode[0] = s.newVar();
     for(auto &x:_DFSlist){
       if(x == 0) continue;
       if(x->type == "AIG"){
-      s.addAigCNF(Varnode[x->gateID], Varnode[x->_in[0].first->gateID], x->_in[0].second,Varnode[x->_in[1].first->gateID], x->_in[1].second);
+      s.addAigCNF(Varnode[x->gateID], Varnode[x->_in[0].first->gateID], x->_in[0].second, Varnode[x->_in[1].first->gateID], x->_in[1].second);
       /* s.addAigCNF(x->getVar(),x->_in[0].first->getVar(),x->_in[0].second,
-                             ,x->_in[1].first->getVar(),x->_in[1].second);
-      } */
+                             ,x->_in[1].first->getVar(),x->_in[1].second);*/
+      } 
     }
+
     //all Var(sat node) is linked!!!
-    //while(_FEClist.size()!=0){
       unsigned idx = 0;
       //if proved -> separate!
       //and record the good pattern!(SAT)
       //while (j1 < _FEClist[idx].size() && j2 < _FEClist[idx].size())
       for (idx = 0; idx < _DFSlist.size();idx++)//---------DFS loop--------------------
       {
-        unsigned &AD = _DFSlist[idx]->fecAddr;
+        if(_DFSlist[idx]==0) continue;
+        if ( !(_DFSlist[idx]->fecAddr < _FEClist.size()) || !(_DFSlist[idx]->type == "AIG"))
+          continue;
+
+        unsigned AD = _DFSlist[idx]->fecAddr;
         unsigned &ID = _DFSlist[idx]->gateID;
         unsigned mypos;
-        if (AD == INT_MAX || _DFSlist[idx]->type != "AIG")
-          continue;
         /* if (_FEClist[AD].size() == 1)
         {
           _FEClist[AD] = _FEClist[_FEClist.size() - 1];
           _FEClist.pop_back();
           continue;
         } */
-        for (unsigned j2 = 0; j2 < _FEClist[AD].size();j2++){//---in-group loop
-          if(_FEClist[AD][j2] == ID){
+if(_FEClist[AD][0] != 0)
+{
+        for (int j2 = 0; j2 < (int)_FEClist[AD].size();j2++){//---in-group loop
+
+          //cout << "Iam " << j2 << " : " << _FEClist[AD][j2] << endl;
+        if (_FEClist[AD][j2] == ID)
+        {
+          mypos = j2;
+          continue;
+          }
+        if(_idMap[_FEClist[_DFSlist[idx]->fecAddr][j2]]->fraig == (CirGate::_fraigRef)){
+          continue;
+        }
+        if (prove(ID, _FEClist[AD][j2], s, Varnode))
+        {
+          //cout << "   sperate: (" << ID << ", " << _FEClist[AD][j2] << ")" << endl;
+          //_FEClist[idx][j2] = _FEClist[idx][_FEClist[idx].size() - 1];
+          //_FEClist[idx].pop_back();
+          for (unsigned pi = 0; pi < _PIlist.size(); pi++)
+          {
+            goodpatterns[pi] = (goodpatterns[pi] << 1) + s.getValue(Varnode[_PIlist[pi]->gateID]);
+            gpa++;
+          }
+          }
+          //if unproved -> merge them!(UNSAT)
+          else
+          {
+            //cout << "   merge: (" << ID << ", " << _FEClist[AD][j2] << ")" << endl;
+            vector<unsigned> temp;
+            temp.push_back(ID);
+            temp.push_back(_FEClist[AD][j2]);
+            to_merge.push_back(temp);
+            _idMap[_FEClist[_DFSlist[idx]->fecAddr][j2]]->fecAddr = INT_MAX;
+            _idMap[_FEClist[_DFSlist[idx]->fecAddr][j2]]->fraig = CirGate::_fraigRef;
+            // _FEClist[AD][j2] = _FEClist[AD][_FEClist[AD].size() - 1];
+            // _FEClist[AD].pop_back();
+            j2--;
+          }
+          //if FEC grp has only one item
+          /* if(_FEClist[idx].size()==1){
+          _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+          _FEClist.pop_back();
+          idFecMapGen();
+        } */
+          //if patterns%64 =0 ->simulate!
+          if (gpa % 64 == 0)
+          {
+            //cout << "Updating by SAT... ";
+            sim_pattern(goodpatterns);
+            if (tempsize != _FEClist.size())
+            {
+              cout << char(13) << "Updating by SAT... Total #FEC Group = " << _FEClist.size() << endl;
+              tempsize = _FEClist.size();
+            }
+            cout.flush();
+            goodpatterns.resize(i, 0);
+            //idFecMapGen();
+            //if(tempsize != _FEClist.size()) { cout << endl; tempsize = _FEClist.size();}
+        }
+        
+if(AD > _FEClist.size()) break;
+          }//-------in-group loop end------------
+}
+else{
+  for (int j2 = 0; j2 < (int)_FEClist[AD].size();j2++){//---in-group loop
+          if(_FEClist[AD][j2] == 0){
             mypos = j2;
             continue;
           }
-          if (prove(ID, _FEClist[AD][j2], s, Varnode))
+          unsigned zero = 0;
+          if (prove(zero, _FEClist[AD][j2], s, Varnode))
           {
-            //cout << "   sperate: (" << _FEClist[idx][j1] << ", " << _FEClist[idx][j2] << ")" << endl;
+            //cout << "   sperate: (" << 0 << ", " << _FEClist[AD][j2] << ")" << endl;
             //_FEClist[idx][j2] = _FEClist[idx][_FEClist[idx].size() - 1];
             //_FEClist[idx].pop_back();
             for (unsigned pi = 0; pi < _PIlist.size(); pi++)
@@ -156,53 +231,74 @@ CirMgr::fraig()
           //if unproved -> merge them!(UNSAT)
           else
           {
-            //cout << "   merge: (" << _FEClist[idx][j1] << ", " << _FEClist[idx][j2] << ")" << endl;
+            //cout << "   merge: (" << 0 << ", " << _FEClist[AD][j2] << ")" << endl;
             vector<unsigned> temp;
-            temp.push_back(ID);
+            temp.push_back(0);
             temp.push_back(_FEClist[AD][j2]);
             to_merge.push_back(temp);
+            _idMap[_FEClist[AD][j2]]->fecAddr = INT_MAX;
+            _FEClist[AD][j2] = _FEClist[AD][_FEClist[AD].size() - 1];
+            _FEClist[AD].pop_back();
+            j2--;
           }
-        //if FEC grp has only one item
-        /* if(_FEClist[idx].size()==1){
+          //if FEC grp has only one item
+          /* if(_FEClist[idx].size()==1){
           _FEClist[idx] = _FEClist[_FEClist.size() - 1];
           _FEClist.pop_back();
           idFecMapGen();
         } */
-        //if patterns%64 =0 ->simulate!
-        if(gpa%64==0){
-          //cout << "Updating by SAT... ";
-          sim_pattern(goodpatterns);
-          if(tempsize != _FEClist.size()) { cout << char(13) << "Updating by SAT... Total #FEC Group = " << _FEClist.size() << endl; tempsize = _FEClist.size();}
-          cout.flush();
-          goodpatterns.resize(i,0);
-          idFecMapGen();
-          //if(tempsize != _FEClist.size()) { cout << endl; tempsize = _FEClist.size();}
+          //if patterns%64 =0 ->simulate!
+          if (gpa % 64 == 0)
+          {
+            //cout << "Updating by SAT... ";
+            sim_pattern(goodpatterns);
+            if (tempsize != _FEClist.size())
+            {
+              cout << char(13) << "Updating by SAT... Total #FEC Group = " << _FEClist.size() << endl;
+              tempsize = _FEClist.size();
+            }
+            cout.flush();
+            goodpatterns.resize(i, 0);
+            //idFecMapGen();
+            //if(tempsize != _FEClist.size()) { cout << endl; tempsize = _FEClist.size();}
         }
         
+if(AD > _FEClist.size()) break;
+}
+}
 
-          }//-------in-group loop------------
-         _FEClist[_DFSlist[idx]->fecAddr][mypos] = _FEClist[_DFSlist[idx]->fecAddr][_FEClist[_DFSlist[idx]->fecAddr].size() - 1];
-         _FEClist[_DFSlist[idx]->fecAddr].pop_back();/* 
+
+
+        if((AD < _FEClist.size())){
+         _FEClist[AD][mypos] = _FEClist[AD][_FEClist[AD].size() - 1];
+         _FEClist[AD].pop_back();
+         /* if(_FEClist[AD].size()==1){
+           _idMap[_FEClist[AD][0]]->fecAddr = INT_MAX;
+           _FEClist[AD].clear();
+         } */
+         _DFSlist[idx]->fecAddr = INT_MAX;
+        }
+         /* 
          if(_FEClist[_DFSlist[idx]->fecAddr].size()==1){
           _FEClist[_DFSlist[idx]->fecAddr] = _FEClist[_FEClist.size() - 1];
           _FEClist.pop_back();
           idFecMapGen();
         } */
 
-        }//---------DFS loop END---------------
-      }
-      if(to_merge.size()){//>=(_DFSlist.size()/100)){
-      for (auto &x : to_merge) {freplace(_idMap[x[1]], _idMap[x[0]]);}
-      to_merge.clear();
+        
+        /* if(to_merge.size()){//>=(_DFSlist.size()/100)){
+        for (auto &x : to_merge) {freplace(_idMap[x[1]], _idMap[x[0]]);}
+        to_merge.clear();
+        
+        if(!_DFSlist.empty()) _DFSlist.clear();
+        (CirGate::_globalRef)++;
+        for (auto &x:_POlist) { DFSlistGen(x); }//=====================" << endl;
+        } */
+      }//-------DFS loop END------------
+      sort_and_pop();
+      }//----------------big while loop end-----------------
       
-      if(!_DFSlist.empty()) _DFSlist.clear();
-      (CirGate::_globalRef)++;
-      for (auto &x:_POlist) { DFSlistGen(x); }
-      //if((unsigned)idx > _FEClist.size()-1) idx=0;
-      //else idx++;
-      //cout << "=======================out=========================" << endl;
-    }
-    if (gpa % 64 != 0)
+    if (false)//gpa % 64 != 0)
     {
       //cout << "Updating by SAT... "
       sim_pattern(goodpatterns);
@@ -210,7 +306,7 @@ CirMgr::fraig()
       cout.flush();
       cout << endl;
       goodpatterns.resize(i,0);
-      idFecMapGen();
+      //idFecMapGen();
     }
 /* 
     for (auto &x : to_merge)
@@ -225,11 +321,12 @@ CirMgr::fraig()
       for (auto &x:_POlist) { DFSlistGen(x); }
   }
   sort_and_pop();
+  //idFecMapGen();
   cout << "Updating by UNSAT... Total #FEC Group = " << _FEClist.size() << endl;
   if(!_DFSlist.empty()) _DFSlist.clear();
   (CirGate::_globalRef)++;
   for (auto &x:_POlist){DFSlistGen(x);}
-  }
+  
 }
 
 /********************************************/
@@ -271,6 +368,7 @@ CirMgr::streplace(CirGate* it,CirGate* alter)
 void
 CirMgr::freplace(CirGate* it,CirGate* alter)
 {
+  bool inv = _simValue[it->gateID] != _simValue[alter->gateID];
     if(it==0||alter==0){
       return;
     }
@@ -282,7 +380,8 @@ CirMgr::freplace(CirGate* it,CirGate* alter)
         if (jj.first == it)
         {
           jj.first = alter;
-          alter->_out.push_back(make_pair(xy.first, jj.second));
+          jj.second = inv != jj.second;
+          alter->_out.push_back(make_pair(xy.first, (inv != jj.second)));
         }
       }
       }

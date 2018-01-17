@@ -21,6 +21,7 @@ extern CirMgr *cirMgr;
 
 // TODO: Implement memeber functions for class(es) in cirGate.h
 unsigned CirGate::_globalRef = 0;
+unsigned CirGate::_fraigRef = 0;
 
 /**************************************/
 /*   class CirGate member functions   */

@@ -49,7 +49,7 @@ CirMgr::simstring(size_t sim){
 void
 CirMgr::randomSim()
 {
-  unsigned limit = log(_DFSlist.size()) / log(2.5) + 0.5;
+  unsigned limit = log(_DFSlist.size()) / 2;
   unsigned fail_times = 0;
   unsigned orgFECsize = INT_MAX;
   unsigned count = 0;
@@ -65,7 +65,6 @@ CirMgr::randomSim()
   sort_and_pop();
   cout << char(13) << count*64 << " patterns simulated." << endl;
   cout.flush();
-  idFecMapGen();
 }
 bool 
 fec_comp(const vector<unsigned>& a, const vector<unsigned>& b){
@@ -76,21 +75,27 @@ void
 CirMgr::sort_and_pop()
 {
   //sorting in each group and between groups!
-    for (int idx = 0; idx < (int)_FEClist.size(); idx++)
+  if(_FEClist.size()==0)
+    return;
+  for (int idx = 0; idx < (int)_FEClist.size(); idx++)
+  {
+    //pop out the one that have only one item!
+    if (_FEClist[idx].size() == 1 || _FEClist[idx].empty())
     {
-      //pop out the one that have only one item!
-      if (_FEClist[idx].size() == 1)
-      {
-        _FEClist[idx] = _FEClist[_FEClist.size() - 1];
-        _FEClist.pop_back();
-        idx--;
-      }
-      else
-      {
-        sort(_FEClist[idx].begin(), _FEClist[idx].end());
-      }
+      _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+      _FEClist.pop_back();
+      idx--;
+      continue;
+    }
+    if(_FEClist.size()==0)
+    return;
+    else if(!_FEClist[idx].empty())
+    {
+      sort(_FEClist[idx].begin(), _FEClist[idx].end());
+    }
     }
     sort(_FEClist.begin(), _FEClist.end(), fec_comp);
+    idFecMapGen();
 }
 
 bool
@@ -181,6 +186,12 @@ CirMgr::sim_random()
     //cout << "split the existed groups!" << endl;
     for (int idx = 0; idx < (int)_FEClist.size(); idx++)
     {
+      if(_FEClist[idx].empty())
+      {
+        _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+        _FEClist.pop_back();
+        idx--;
+      }
       if (_FEClist[idx].size() == 1)
       {
         _FEClist[idx] = _FEClist[_FEClist.size() - 1];
@@ -196,6 +207,7 @@ CirMgr::sim_random()
         }
       }
     }
+  idFecMapGen();
   }
   cout << char(13) << "Total #FEC Group = " << _FEClist.size();
   cout.flush();
@@ -227,6 +239,7 @@ CirMgr::classify_first_time(CirGate* x,bool& flag,unordered_map<size_t,unsigned>
   else
   {
     _FEClist[got->second].push_back(x->gateID);
+    x->fecAddr = got->second;
   }
 }
 
@@ -252,13 +265,30 @@ void
 CirMgr::idFecMapGen()
 {
   for(auto &x:_idMap){
+    if(x == 0) continue;
     x->fecAddr = INT_MAX;
   }
-  for (unsigned idx = 0; idx < _FEClist.size();idx++){
-    for(auto &x:_FEClist[idx]){
-      if(_idMap[x]==0) continue;
-      _idMap[x]->fecAddr = idx;
+  for (unsigned idx = 0; idx < _FEClist.size();){
+    int jdx = idx;
+    if (_FEClist[idx].empty())
+    {
+      _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+      _FEClist.pop_back();
+      }
+    else if(_FEClist[idx].size()==1){
+      _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+      _FEClist.pop_back();
     }
+    else{
+      jdx++;
+      }
+      for (auto &x : _FEClist[idx])
+      {
+        if (_idMap[x] == 0)
+          continue;
+        _idMap[x]->fecAddr = idx;
+      }
+      idx = jdx;
   }
 }
 
@@ -304,6 +334,12 @@ CirMgr::sim_pattern(vector<size_t> pat)
     //cout << "split the existed groups!" << endl;
     for (int idx = 0; idx < (int)_FEClist.size(); idx++)
     {
+      if(_FEClist[idx].empty())
+      {
+        _FEClist[idx] = _FEClist[_FEClist.size() - 1];
+        _FEClist.pop_back();
+        idx--;
+      }
       if (_FEClist[idx].size() == 1)
       {
         _FEClist[idx] = _FEClist[_FEClist.size() - 1];
@@ -321,6 +357,7 @@ CirMgr::sim_pattern(vector<size_t> pat)
         }
       }
     }
+  idFecMapGen();
   }
 }
 
@@ -380,7 +417,6 @@ CirMgr::fileSim(ifstream &patternFile)
     sort_and_pop();
     cout << char(13) << count64 << " patterns simulated." << endl;
     cout.flush();
-    idFecMapGen();
 }
 
 /*************************************************/

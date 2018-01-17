@@ -77,6 +77,8 @@ private:
 protected:
   static unsigned _globalRef;
   mutable unsigned _ref; //marked number used in DFS
+  static unsigned _fraigRef;
+  mutable unsigned fraig = 0;
   bool unused;
   //int varID;
   //int litID;
